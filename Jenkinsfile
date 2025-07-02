@@ -1,33 +1,46 @@
 pipeline {
-  
-    agent {
-        label 'Ansible-Node'
+    agent any
+
+    tools {
+        maven 'maven' // Define in Jenkins tool config
     }
-    
-    tools{
-        maven "Maven-3.9.9"
+
+    environment {
+        GIT_REPO = 'https://github.com/Vamshi420/https-github.com-ashokitschool-maven-web-app.git'
+        CREDENTIALS_ID = 'tomcat-cred' // Jenkins credentials ID
+        TOMCAT_URL = 'http://3.110.54.234:8080' // Your Tomcat server
     }
 
     stages {
-        stage('Clone') {
+        stage('Clone from GitHub') {
             steps {
-               git 'https://github.com/ashokitschool/maven-web-app.git'
+                git url: "${https://github.com/Vamshi420/https-github.com-ashokitschool-maven-web-app.git}"
             }
         }
-        stage('Build') {
+
+        stage('Build with Maven') {
             steps {
-               sh 'mvn clean package'
+                sh 'mvn clean package'
             }
         }
-        
-        stage('Create Image'){
-            steps{
-               steps {
-                	script {
-                		sh 'ansible-playbook task.yml'
-                	}
-                }
+
+        stage('Deploy to Tomcat') {
+            steps {
+                deploy adapters: [
+                    tomcat9(credentialsId: "${CREDENTIALS_ID}", 
+                            path: '/', 
+                            url: "${TOMCAT_URL}/manager/text")
+                ], contextPath: '', war: 'target/*.war'
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Build and Deployment successful!"
+        }
+        failure {
+            echo "❌ Build or Deployment failed. Check logs."
         }
     }
 }
