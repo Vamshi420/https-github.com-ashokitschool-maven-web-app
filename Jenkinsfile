@@ -2,45 +2,47 @@ pipeline {
     agent any
 
     tools {
-        maven 'maven' // Define in Jenkins tool config
-    }
-
-    environment {
-        GIT_REPO = 'https://github.com/Vamshi420/https-github.com-ashokitschool-maven-web-app.git'
-        CREDENTIALS_ID = 'tomcat-cred' // Jenkins credentials ID
-        TOMCAT_URL = 'http://3.110.54.234:8080' // Your Tomcat server
+        maven 'M3'
     }
 
     stages {
-        stage('Clone from GitHub') {
+
+        stage('Checkout Code') {
             steps {
-                git url: "${https://github.com/Vamshi420/https-github.com-ashokitschool-maven-web-app.git}"
+                git branch: 'master',
+                url: 'https://github.com/Vamshi420/https-github.com-ashokitschool-maven-web-app.git'
             }
         }
 
-        stage('Build with Maven') {
+        stage('Build') {
             steps {
                 sh 'mvn clean package'
             }
         }
 
-        stage('Deploy to Tomcat') {
+        stage('SonarQube Analysis') {
             steps {
-                deploy adapters: [
-                    tomcat9(credentialsId: "${CREDENTIALS_ID}", 
-                            path: '/', 
-                            url: "${TOMCAT_URL}/manager/text")
-                ], contextPath: '', war: 'target/*.war'
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                    mvn sonar:sonar \
+                    -Dsonar.projectKey=maven-web-app \
+                    -Dsonar.host.url=http://3.108.190.250:9000/ \
+                    -Dsonar.login=YOUR_SONAR_TOKEN
+                    '''
+                }
             }
         }
-    }
 
-    post {
-        success {
-            echo "✅ Build and Deployment successful!"
-        }
-        failure {
-            echo "❌ Build or Deployment failed. Check logs."
+        stage('Deploy to Tomcat') {
+            steps {
+                deploy adapters: [tomcat9(
+                    credentialsId: 'tomcat-cred',
+                    path: '',
+                    url: 'http://15.206.27.10:8080/'
+                )],
+                contextPath: 'maven-web-app',
+                war: 'webapp/target/*.war'
+            }
         }
     }
 }
