@@ -5,11 +5,15 @@ pipeline {
         maven 'M3'
     }
 
+    environment {
+        SONAR_SERVER = 'SonarQube'
+    }
+
     stages {
 
         stage('Checkout Code') {
             steps {
-                git branch: 'master',
+                git branch: 'main',
                 url: 'https://github.com/Vamshi420/https-github.com-ashokitschool-maven-web-app.git'
             }
         }
@@ -33,10 +37,18 @@ pipeline {
             }
         }
 
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
         stage('Deploy to Tomcat') {
             steps {
                 deploy adapters: [tomcat9(
-                    credentialsId: 'tomcat-cred',
+                    credentialsId: 'tomcat-creds',
                     path: '',
                     url: 'http://15.206.27.10:8080/'
                 )],
